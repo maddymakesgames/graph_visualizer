@@ -81,10 +81,9 @@ impl GraphPainter {
         };
 
         while curr_node.get_id() != next_node.get_id() {
-            println!("Painting {} {}", curr_node.get_name(), next_node.get_name());
             self.paint_graph_edge(
                 graph,
-                &Edge::new(curr_node.get_id(), next_node.get_id(), None),
+                &Edge::new(next_node.get_id(), curr_node.get_id(), None),
                 painter,
                 graph.is_directed(),
                 Stroke::from((self.edge_stroke, self.path_color)),

@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::{collections::HashMap, time::Instant};
 
 use eframe::CreationContext;
 use egui::{
@@ -48,6 +45,8 @@ impl eframe::App for GraphApp {
                     if let Some(traversal) = &traversal.traversal {
                         self.painter.paint_path(traversal.end_node, graph, &painter);
                     }
+                } else {
+                    ctx.request_repaint();
                 }
             }
         }
@@ -153,12 +152,16 @@ impl Default for GraphApp {
                     directed: false,
                     weighted: false,
                     random_menu_open: false,
-                    random_node_count: 12,
-                    random_connected: false,
-                    random_edge_count: 15,
-                    random_weights: false,
-                    random_weight_lower_bound: 1.0,
-                    random_weight_upper_bound: 10.0,
+                    random_menu: RandomGraphMenu {
+                        graph_name: String::new(),
+                        connected: false,
+                        directed: false,
+                        node_count: 12,
+                        edge_count: 15,
+                        weights: false,
+                        weight_lower_bound: 1.0,
+                        weight_upper_bound: 10.0,
+                    },
                 },
                 curr_menu: Menus::Graphs,
                 node_data: Vec::new(),
@@ -647,12 +650,7 @@ struct GraphMenu {
     directed: bool,
     weighted: bool,
     random_menu_open: bool,
-    random_node_count: u8,
-    random_connected: bool,
-    random_edge_count: u8,
-    random_weights: bool,
-    random_weight_lower_bound: f32,
-    random_weight_upper_bound: f32,
+    random_menu: RandomGraphMenu,
 }
 
 impl GraphMenu {
@@ -719,182 +717,13 @@ impl GraphMenu {
 
         if self.random_menu_open {
             if let Some(true) = Window::new("Random Graph Creation")
-                .show(ui.ctx(), |ui| {
-                    ui.horizontal(|ui| {
-                        ui.label("Node Count");
-                        DragValue::new(&mut self.random_node_count)
-                            .clamp_range(1..=30)
-                            .ui(ui);
-                    });
-
-                    ui.horizontal(|ui| {
-                        ui.label("Edge Count");
-                        DragValue::new(&mut self.random_edge_count)
-                            .clamp_range(
-                                if self.random_connected {
-                                    self.random_node_count as u32 - 1
-                                } else {
-                                    0
-                                }
-                                    ..=self.random_node_count as u32
-                                        * (self.random_node_count as u32 - 1),
-                            )
-                            .ui(ui);
-                    });
-
-                    ui.checkbox(&mut self.random_connected, "Connected Graph");
-                    ui.checkbox(&mut self.random_weights, "Weighted Graph");
-
-                    if self.random_weights {
-                        DragValue::new(&mut self.random_weight_lower_bound).ui(ui);
-
-                        if self.random_weight_upper_bound < self.random_weight_lower_bound {
-                            self.random_weight_upper_bound = self.random_weight_lower_bound;
-                        }
-
-                        DragValue::new(&mut self.random_weight_upper_bound)
-                            .clamp_range(self.random_weight_lower_bound..=f32::INFINITY)
-                            .ui(ui);
-                    }
-
-                    ui.button("Create Graph").clicked()
-                })
+                .show(ui.ctx(), |ui| self.random_menu.draw(ui))
                 .map(|a| {
                     let b = a.inner;
                     matches!(b, Some(true))
                 })
             {
-                let node_count = self.random_node_count;
-                let edge_count = self.random_edge_count;
-
-                let mut graph =
-                    Graph::new(self.graph_name.clone(), self.directed, self.random_weights);
-                let mut rng = rand::thread_rng();
-
-                for i in 0..node_count {
-                    let x = rng.gen_range(5.0..995.0);
-                    let y = rng.gen_range(5.0..995.0);
-                    graph.add_node((x, y), i.to_string(), Vec::new());
-                }
-
-                for i in 0..edge_count {
-                    // If we are making a connected graph, we ensure that each node gets at least 1 edge
-                    let a = if self.random_connected && i < node_count {
-                        i as usize
-                    } else {
-                        rng.gen_range(0..node_count) as usize
-                    };
-
-                    let mut b = rng.gen_range(0..node_count) as usize;
-
-                    while a == b && node_count > 1 {
-                        b = rng.gen_range(0..node_count) as usize;
-                    }
-
-                    let a = NodeIndex(a);
-                    let mut b = NodeIndex(b);
-
-                    while graph.get_node(a).get_edges().iter().any(|e| {
-                        let (c, d) = e.get_nodes();
-                        if c == a {
-                            d == b
-                        } else if !self.directed {
-                            c == b
-                        } else {
-                            false
-                        }
-                    }) {
-                        b = NodeIndex(rng.gen_range(0..node_count) as usize);
-                    }
-
-                    let weight = if self.random_weights {
-                        Some(rng.gen_range(
-                            self.random_weight_lower_bound..self.random_weight_upper_bound,
-                        ))
-                    } else {
-                        None
-                    };
-
-                    graph.add_edge(a, b, weight)
-                }
-
-                if self.random_connected {
-                    'connection_test: loop {
-                        let mut traversal = TraversalData::new(
-                            NodeIndex(0),
-                            NodeIndex(self.random_node_count as usize - 1),
-                            GraphTraversers::SimpleBreadth,
-                        );
-
-                        while !traversal.step(&mut graph) {}
-
-                        let mut edges_to_add = Vec::new();
-
-                        if traversal.visited.len() != self.random_node_count as usize {
-                            println!("Found disconnected graph");
-                            for node in graph.get_nodes_mut() {
-                                if !traversal.visited.contains(&node.get_id()) {
-                                    let id = node.get_id();
-
-                                    let mut b = rng.gen_range(0..node_count) as usize;
-
-                                    while id.0 == b && node_count > 1 {
-                                        b = rng.gen_range(0..node_count) as usize;
-                                    }
-
-                                    let mut b = NodeIndex(b);
-
-                                    while node.get_edges().iter().any(|e| {
-                                        let (c, d) = e.get_nodes();
-                                        if c == id {
-                                            d == b
-                                        } else if !self.directed {
-                                            c == b
-                                        } else {
-                                            false
-                                        }
-                                    }) {
-                                        b = NodeIndex(rng.gen_range(0..node_count) as usize);
-                                    }
-
-                                    let weight = if self.random_weights {
-                                        Some(rng.gen_range(
-                                            self.random_weight_lower_bound
-                                                ..self.random_weight_upper_bound,
-                                        ))
-                                    } else {
-                                        None
-                                    };
-
-                                    edges_to_add.push((id, b, weight));
-                                }
-                            }
-
-                            graph.reset();
-
-                            for (a, b, weight) in edges_to_add.into_iter() {
-                                graph.add_edge(a, b, weight);
-
-                                let mut traversal = TraversalData::new(
-                                    NodeIndex(0),
-                                    NodeIndex(self.random_node_count as usize - 1),
-                                    GraphTraversers::SimpleBreadth,
-                                );
-
-                                while !traversal.step(&mut graph) {}
-
-                                if traversal.visited.len() == self.random_node_count as usize {
-                                    break 'connection_test;
-                                }
-
-                                graph.reset();
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                graph.reset();
+                let graph = self.random_menu.gen_graph();
 
                 graphs.push(graph);
                 traversal_data.push(TraversalMenu {
@@ -911,11 +740,199 @@ impl GraphMenu {
                 node_data.push(NodesMenu {
                     curr_adding_node_text: String::new(),
                     curr_editing_node: 0,
-                    node_data: vec![NodeMenuData::default(); self.random_node_count as usize],
+                    node_data: vec![NodeMenuData::default(); self.random_menu.node_count as usize],
                 });
 
                 self.random_menu_open = false;
             }
         }
+    }
+}
+
+struct RandomGraphMenu {
+    graph_name: String,
+    connected: bool,
+    directed: bool,
+    node_count: u8,
+    edge_count: u8,
+    weights: bool,
+    weight_lower_bound: f32,
+    weight_upper_bound: f32,
+}
+
+impl RandomGraphMenu {
+    fn draw(&mut self, ui: &mut Ui) -> bool {
+        ui.horizontal(|ui| {
+            ui.label("Graph Name");
+            ui.text_edit_singleline(&mut self.graph_name);
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Node Count");
+            DragValue::new(&mut self.node_count)
+                .clamp_range(1..=30)
+                .ui(ui);
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Edge Count");
+            DragValue::new(&mut self.edge_count)
+                .clamp_range(
+                    if self.connected {
+                        self.node_count as u32 - 1
+                    } else {
+                        0
+                    }..=self.node_count as u32 * (self.node_count as u32 - 1),
+                )
+                .ui(ui);
+        });
+
+        ui.checkbox(&mut self.directed, "Directed Graph");
+        ui.checkbox(&mut self.connected, "Connected Graph");
+        ui.checkbox(&mut self.weights, "Weighted Graph");
+
+        if self.weights {
+            DragValue::new(&mut self.weight_lower_bound).ui(ui);
+
+            if self.weight_upper_bound < self.weight_lower_bound {
+                self.weight_upper_bound = self.weight_lower_bound;
+            }
+
+            DragValue::new(&mut self.weight_upper_bound)
+                .clamp_range(self.weight_lower_bound..=f32::INFINITY)
+                .ui(ui);
+        }
+
+        ui.button("Create Graph").clicked()
+    }
+
+    fn gen_graph(&self) -> Graph {
+        let edge_count = self.edge_count;
+        let node_count = self.node_count;
+
+        let mut graph = Graph::new(self.graph_name.clone(), self.directed, self.weights);
+        let mut rng = rand::thread_rng();
+
+        for i in 0..node_count {
+            let x = rng.gen_range(5.0..995.0);
+            let y = rng.gen_range(5.0..995.0);
+            graph.add_node((x, y), i.to_string(), Vec::new());
+        }
+
+        for i in 0..edge_count {
+            // If we are making a connected graph, we ensure that each node gets at least 1 edge
+            let a = if self.connected && i < node_count {
+                i as usize
+            } else {
+                rng.gen_range(0..node_count) as usize
+            };
+
+            let mut b = rng.gen_range(0..node_count) as usize;
+
+            while a == b && node_count > 1 {
+                b = rng.gen_range(0..node_count) as usize;
+            }
+
+            let a = NodeIndex(a);
+            let mut b = NodeIndex(b);
+
+            while graph.get_node(a).get_edges().iter().any(|e| {
+                let (c, d) = e.get_nodes();
+                if c == a {
+                    d == b
+                } else if !self.directed {
+                    c == b
+                } else {
+                    false
+                }
+            }) {
+                b = NodeIndex(rng.gen_range(0..node_count) as usize);
+            }
+
+            let weight = if self.weights {
+                Some(rng.gen_range(self.weight_lower_bound..self.weight_upper_bound))
+            } else {
+                None
+            };
+
+            graph.add_edge(a, b, weight)
+        }
+
+        if self.connected {
+            'connection_test: loop {
+                let mut traversal = TraversalData::new(
+                    NodeIndex(0),
+                    NodeIndex(self.node_count as usize - 1),
+                    GraphTraversers::SimpleBreadth,
+                );
+
+                while !traversal.step(&mut graph) {}
+
+                let mut edges_to_add = Vec::new();
+
+                if traversal.visited.len() != self.node_count as usize {
+                    for node in graph.get_nodes_mut() {
+                        if !traversal.visited.contains(&node.get_id()) {
+                            let id = node.get_id();
+
+                            let mut b = rng.gen_range(0..node_count) as usize;
+
+                            while id.0 == b && node_count > 1 {
+                                b = rng.gen_range(0..node_count) as usize;
+                            }
+
+                            let mut b = NodeIndex(b);
+
+                            while node.get_edges().iter().any(|e| {
+                                let (c, d) = e.get_nodes();
+                                if c == id {
+                                    d == b
+                                } else if !self.directed {
+                                    c == b
+                                } else {
+                                    false
+                                }
+                            }) {
+                                b = NodeIndex(rng.gen_range(0..node_count) as usize);
+                            }
+
+                            let weight = if self.weights {
+                                Some(
+                                    rng.gen_range(self.weight_lower_bound..self.weight_upper_bound),
+                                )
+                            } else {
+                                None
+                            };
+
+                            edges_to_add.push((id, b, weight));
+                        }
+                    }
+
+                    graph.reset();
+
+                    for (a, b, weight) in edges_to_add.into_iter() {
+                        graph.add_edge(a, b, weight);
+
+                        let mut traversal = TraversalData::new(
+                            NodeIndex(0),
+                            NodeIndex(self.node_count as usize - 1),
+                            GraphTraversers::SimpleBreadth,
+                        );
+
+                        while !traversal.step(&mut graph) {}
+
+                        if traversal.visited.len() == self.node_count as usize {
+                            break 'connection_test;
+                        }
+
+                        graph.reset();
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        graph.reset();
+        graph
     }
 }
