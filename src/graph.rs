@@ -133,6 +133,7 @@ impl Graph {
 #[derive(Copy, Clone)]
 pub enum NodeState {
     None,
+    Start,
     Seen,
     Visited,
     End,
@@ -247,6 +248,10 @@ impl Node {
             let (a, b) = e.get_nodes();
             a != other && b != other
         })
+    }
+
+    pub fn start(&mut self) {
+        self.state = NodeState::Start;
     }
 }
 

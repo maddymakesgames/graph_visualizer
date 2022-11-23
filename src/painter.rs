@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub struct GraphPainter {
+    pub start_color: Color32,
     pub node_color: Color32,
     pub edge_color: Color32,
     pub text_color: Color32,
@@ -113,6 +114,7 @@ impl GraphPainter {
             self.node_radius,
             match node.get_state() {
                 NodeState::None => Rgba::BLACK,
+                NodeState::Start => Rgba::from(self.start_color),
                 NodeState::Seen => Rgba::from(self.seen_color),
                 NodeState::Visited => Rgba::from(self.visited_color),
                 NodeState::End => Rgba::from(self.end_node_color),

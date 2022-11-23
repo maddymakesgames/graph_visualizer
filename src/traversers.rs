@@ -7,6 +7,7 @@ use crate::graph::{Graph, NodeIndex};
 pub struct TraversalData {
     pub alg: GraphTraversers,
     pub end_node: NodeIndex,
+    pub start_node: NodeIndex,
     pub to_traverse: Vec<(f32, NodeIndex)>,
     pub visited: HashSet<NodeIndex>,
 }
@@ -26,7 +27,12 @@ impl TraversalData {
         let (_curr_length, idx) = self.to_traverse.remove(0);
         let node = graph.get_node_mut(idx);
 
-        node.visit();
+        if idx == self.start_node {
+            node.start();
+        } else {
+            node.visit();
+        }
+
         self.visited.insert(idx);
 
         let id = node.get_id();
@@ -61,7 +67,13 @@ impl TraversalData {
     pub fn depth_first_step(&mut self, graph: &mut Graph) -> bool {
         let (_priority, idx) = self.to_traverse.remove(0);
         let node = graph.get_node_mut(idx);
-        node.visit();
+
+        if idx == self.start_node {
+            node.start();
+        } else {
+            node.visit();
+        }
+
         self.visited.insert(idx);
         let path_len = node.get_curr_path();
 
@@ -103,7 +115,12 @@ impl TraversalData {
             return self.to_traverse.is_empty();
         }
 
-        node.visit();
+        if idx == self.start_node {
+            node.start();
+        } else {
+            node.visit();
+        }
+
         self.visited.insert(idx);
 
         let path_len = node.get_curr_path();
@@ -166,7 +183,12 @@ impl TraversalData {
             return self.to_traverse.is_empty();
         }
 
-        node.visit();
+        if idx == self.start_node {
+            node.start();
+        } else {
+            node.visit();
+        }
+
         self.visited.insert(idx);
 
         let path_len = node.get_curr_path();
@@ -230,6 +252,7 @@ impl TraversalData {
     pub fn new(start_node: NodeIndex, end_node: NodeIndex, alg: GraphTraversers) -> TraversalData {
         TraversalData {
             alg,
+            start_node,
             end_node,
             to_traverse: vec![(0.0, start_node)],
             visited: HashSet::new(),

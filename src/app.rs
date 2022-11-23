@@ -168,6 +168,7 @@ impl Default for GraphApp {
                 traversal_data: Vec::new(),
             },
             painter: GraphPainter {
+                start_color: Color32::LIGHT_BLUE,
                 node_color: Color32::WHITE,
                 edge_color: Color32::RED,
                 text_color: Color32::WHITE,
@@ -250,6 +251,10 @@ impl MenuData {
         ui.horizontal(|ui| {
             ui.label("Text Color Background");
             ui.color_edit_button_srgba(&mut painter.text_background_color);
+        });
+        ui.horizontal(|ui| {
+            ui.label("Start Node Color");
+            ui.color_edit_button_srgba(&mut painter.start_color);
         });
         ui.horizontal(|ui| {
             ui.label("End Node Color");
