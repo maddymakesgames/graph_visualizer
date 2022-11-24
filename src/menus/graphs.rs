@@ -86,7 +86,6 @@ impl Menu for GraphMenu {
     fn graph_updated(&mut self, _graph_index: &Graph) {}
 }
 
-#[derive(Default)]
 struct RandomGraphMenu {
     graph_name: String,
     connected: bool,
@@ -272,5 +271,20 @@ impl RandomGraphMenu {
         }
         graph.reset();
         graph
+    }
+}
+
+impl Default for RandomGraphMenu {
+    fn default() -> Self {
+        RandomGraphMenu {
+            graph_name: String::new(),
+            connected: false,
+            directed: false,
+            node_count: 3,
+            edge_count: 4,
+            weights: false,
+            weight_lower_bound: 1.0,
+            weight_upper_bound: 5.0,
+        }
     }
 }
