@@ -12,7 +12,8 @@ pub struct GraphPainter {
     pub start_color: Color32,
     pub node_color: Color32,
     pub edge_color: Color32,
-    pub text_color: Color32,
+    pub node_text_color: Color32,
+    pub weight_text_color: Color32,
     pub seen_color: Color32,
     pub text_background_color: Color32,
     pub visited_color: Color32,
@@ -50,7 +51,7 @@ impl GraphPainter {
             let galley = painter.layout_no_wrap(
                 text,
                 FontId::monospace(self.weight_text_size as f32),
-                self.text_color,
+                self.weight_text_color,
             );
 
             let text_rect = galley.rect;
@@ -127,7 +128,7 @@ impl GraphPainter {
             Align2::CENTER_CENTER,
             node.get_name(),
             FontId::monospace(self.node_text_size as f32),
-            self.text_color,
+            self.node_text_color,
         );
     }
 
@@ -316,7 +317,8 @@ impl Default for GraphPainter {
             start_color: Color32::LIGHT_BLUE,
             node_color: Color32::WHITE,
             edge_color: Color32::RED,
-            text_color: Color32::WHITE,
+            node_text_color: Color32::WHITE,
+            weight_text_color: Color32::WHITE,
             text_background_color: Color32::GRAY,
             seen_color: Color32::BROWN,
             visited_color: Color32::DARK_GREEN,
