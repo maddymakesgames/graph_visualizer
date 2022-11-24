@@ -63,6 +63,7 @@ impl Menu for GraphMenu {
 
         if self.random_menu_open {
             if let Some(true) = Window::new("Random Graph Creation")
+                .open(&mut self.random_menu_open)
                 .show(ui.ctx(), |ui| self.random_menu.ui(ui))
                 .map(|a| {
                     let b = a.inner;
