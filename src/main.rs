@@ -1,7 +1,8 @@
-use crate::app::GraphApp;
+use crate::app::AppManager;
 
 mod app;
 mod graph;
+pub mod menus;
 mod painter;
 mod traversers;
 fn main() {
@@ -9,6 +10,6 @@ fn main() {
     eframe::run_native(
         "Graph Visualizer",
         native_options,
-        Box::new(|cc| Box::new(GraphApp::new(cc))),
+        Box::new(|cc| Box::new(AppManager::new(cc))),
     )
 }

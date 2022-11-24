@@ -309,3 +309,26 @@ impl GraphPainter {
         painter.line_segment([tip, tip - tip_length * (rot.inverse() * dir)], stroke);
     }
 }
+
+impl Default for GraphPainter {
+    fn default() -> Self {
+        GraphPainter {
+            start_color: Color32::LIGHT_BLUE,
+            node_color: Color32::WHITE,
+            edge_color: Color32::RED,
+            text_color: Color32::WHITE,
+            text_background_color: Color32::GRAY,
+            seen_color: Color32::BROWN,
+            visited_color: Color32::DARK_GREEN,
+            end_node_color: Color32::DARK_BLUE,
+            path_color: Color32::GOLD,
+            node_radius: 32.0,
+            node_stroke: 6.0,
+            edge_stroke: 5.0,
+            node_text_size: 18,
+            weight_text_size: 18,
+            arrow_length: 15.0,
+            curved_arrow_angle: 0.5,
+        }
+    }
+}
