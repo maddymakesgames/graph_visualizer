@@ -16,8 +16,6 @@ pub struct NodesMenu {
 }
 
 impl Menu for NodesMenu {
-    type NeededData = GraphApp;
-
     fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui) {
         if let Some(graph) = app.get_curr_graph() {
             ui.horizontal(|ui| {

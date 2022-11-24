@@ -6,8 +6,6 @@ use crate::{app::GraphApp, graph::Graph, menus::Menu};
 pub struct GraphPainterMenu;
 
 impl Menu for GraphPainterMenu {
-    type NeededData = GraphApp;
-
     fn ui(&mut self, app: &mut GraphApp, ui: &mut egui::Ui) {
         let painter = app.get_graph_painter();
         ui.heading("Node Settings");

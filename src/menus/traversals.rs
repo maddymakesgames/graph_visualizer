@@ -21,8 +21,6 @@ pub struct TraversalMenu {
 }
 
 impl Menu for TraversalMenu {
-    type NeededData = GraphApp;
-
     fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui) {
         if let Some(graph) = app.get_curr_graph() {
             let algs = GraphTraversers::values();

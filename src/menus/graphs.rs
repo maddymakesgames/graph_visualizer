@@ -18,8 +18,6 @@ pub struct GraphMenu {
 }
 
 impl Menu for GraphMenu {
-    type NeededData = GraphApp;
-
     fn ui(&mut self, graph_app: &mut GraphApp, ui: &mut Ui) {
         let curr_graph = graph_app.get_curr_graph_index();
         let graphs = graph_app.get_graphs();

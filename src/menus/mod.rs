@@ -5,12 +5,10 @@ pub mod traversals;
 
 use egui::Ui;
 
-use crate::graph::Graph;
+use crate::{app::GraphApp, graph::Graph};
 
 pub trait Menu {
-    type NeededData;
-
-    fn ui(&mut self, app: &mut Self::NeededData, ui: &mut Ui);
+    fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui);
 
     fn name(&self) -> &'static str;
 
