@@ -1,21 +1,33 @@
 # Graph Visualizer
 This is a Rust program to help visualize various forms of graphs and traversals through them.
 
-## Compiling
-For some reason winit requires fontconfig to be installed on some linux distros<br>
-On ubuntu / other debian platforms this can be done with:<br>
-`sudo apt install libfontconfig-dev`
+## Usage
+Precompiled binaries can be found in the github releases.
+We also use github pages to host a web accessible version which you can find [here](https://maddymakesgames.github.io/graph_visualizer/).
 
-Otherwise you can just compile using cargo which you can install from the [rust website](https://www.rust-lang.org/learn/get-started).
-
-Precompiled binaries can be found in the github releases
-## How to use
 To get started you need to create a graph.
 This can be done either by typing in a name for the graph and creating an empty graph, or by using the random graph generator to make a random graph.
 
 After that you can use the `nodes` tab to edit the connections between nodes and the `traversal` tab to traverse the graph using various algorithms.
 
 You can also use the `painter settings` tab to edit how the graph is rendered. You can use the `ui settings` tab to edit the font sizes of the ui.
+
+Note that when you create a new graph, you need to switch to it by using the dropdown menu in the graphs tab.
+
+## Compiling From Source
+The GUI library we're using egui, requires some dependencies to be installed when running on linux.<br>
+If running ubuntu or debian based distros you can install these by running:<br>
+```
+sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
+```
+
+For some reason winit requires fontconfig to be installed on some linux distros, this is expected to be fixed in a bit<br>
+On ubuntu / other debian platforms this can be done with:<br>
+```
+sudo apt install libfontconfig-dev
+```
+
+Otherwise you can just compile using cargo which you can install from the [rust website](https://www.rust-lang.org/learn/get-started).
 
 ## Current Features
 - In-App tutorials 
