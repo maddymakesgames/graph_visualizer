@@ -314,7 +314,7 @@ impl GraphPainter {
 impl Default for GraphPainter {
     fn default() -> Self {
         GraphPainter {
-            start_color: Color32::LIGHT_BLUE,
+            start_color: Color32::from_rgb(0, 155, 181),
             node_color: Color32::WHITE,
             edge_color: Color32::RED,
             node_text_color: Color32::WHITE,
