@@ -1,4 +1,6 @@
-use std::{collections::HashMap, time::Instant};
+use std::collections::HashMap;
+
+use instant::Instant;
 
 use egui::{ComboBox, DragValue, Ui, Widget};
 

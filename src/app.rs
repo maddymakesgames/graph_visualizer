@@ -1,4 +1,4 @@
-use std::time::Instant;
+use instant::Instant;
 
 use eframe::CreationContext;
 use egui::{Context, DragValue, LayerId, Ui, Visuals, WidgetText, Window};
