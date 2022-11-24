@@ -5,7 +5,10 @@ use egui::{Context, DragValue, LayerId, Ui, Visuals, WidgetText, Window};
 
 use crate::{
     graph::{Graph, NodeIndex},
-    menus::{graphs::GraphMenu, nodes::NodesMenu, traversals::TraversalMenu, Menu},
+    menus::{
+        graphs::GraphMenu, nodes::NodesMenu, painter::GraphPainterMenu, traversals::TraversalMenu,
+        Menu,
+    },
     painter::GraphPainter,
 };
 
@@ -168,6 +171,7 @@ struct MenuData {
     node_menu: NodesMenu,
     traversal_data: TraversalMenu,
     graph_data: GraphMenu,
+    painter_menu: GraphPainterMenu,
 }
 
 impl MenuData {
@@ -179,7 +183,7 @@ impl MenuData {
             Menus::Nodes => {
                 self.node_menu.ui(app, ui);
             }
-            Menus::PainterSettings => app.painter.ui(&mut (), ui),
+            Menus::PainterSettings => self.painter_menu.ui(app, ui),
             Menus::Traversals => self.traversal_data.ui(app, ui),
             Menus::UISettings => self.draw_ui_settings(ui),
         }
