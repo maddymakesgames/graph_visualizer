@@ -1,11 +1,83 @@
 use std::collections::HashSet;
 
 use egui::Pos2;
+use instant::Instant;
 
 use crate::graph::{Graph, NodeIndex};
 
-pub struct TraversalData {
+pub struct TraversalManager {
+    pub last_traversal: Instant,
+    pub speed: u32,
+    pub auto: bool,
+    pub currently_traversing: bool,
     pub alg: GraphTraversers,
+    pub traversal: Option<TraversalData>,
+}
+
+impl TraversalManager {
+    pub fn new(alg: GraphTraversers) -> Self {
+        TraversalManager {
+            alg,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_traversal(&mut self, start_node: NodeIndex, end_node: NodeIndex) {
+        self.currently_traversing = true;
+        self.traversal = Some(TraversalData::new(start_node, end_node))
+    }
+
+    pub fn update(&mut self, graph: &mut Graph) {
+        if self.currently_traversing {
+            if self.auto {
+                let now = Instant::now();
+                if let Some(dur) = now.checked_duration_since(self.last_traversal) {
+                    if dur.as_millis() as u32 >= self.speed {
+                        if self.step(graph) {
+                            self.currently_traversing = false;
+                        }
+                        self.last_traversal = now;
+                    }
+                }
+            } else if self.step(graph) {
+                self.currently_traversing = false;
+            }
+        }
+    }
+
+    pub fn stop_traversal(&mut self) {
+        self.traversal = None;
+    }
+
+    fn step(&mut self, graph: &mut Graph) -> bool {
+        if let Some(traversal) = &mut self.traversal {
+            match self.alg {
+                GraphTraversers::BreadthFirst => traversal.breadth_first_step(graph),
+                GraphTraversers::DepthFirst => traversal.depth_first_step(graph),
+                GraphTraversers::Dijkstras => traversal.dijkstras_step(graph),
+                GraphTraversers::AStar => traversal.astar_step(graph),
+                GraphTraversers::SimpleBreadth => traversal.simple_breadth(graph),
+            }
+        } else {
+            true
+        }
+    }
+}
+
+impl Default for TraversalManager {
+    fn default() -> Self {
+        TraversalManager {
+            last_traversal: Instant::now(),
+            speed: 30,
+            auto: true,
+            currently_traversing: false,
+            alg: GraphTraversers::DepthFirst,
+            traversal: None,
+        }
+    }
+}
+
+pub struct TraversalData {
     pub end_node: NodeIndex,
     pub start_node: NodeIndex,
     pub to_traverse: Vec<(f32, NodeIndex)>,
@@ -13,16 +85,6 @@ pub struct TraversalData {
 }
 
 impl TraversalData {
-    pub fn step(&mut self, graph: &mut Graph) -> bool {
-        match self.alg {
-            GraphTraversers::BreadthFirst => self.breadth_first_step(graph),
-            GraphTraversers::DepthFirst => self.depth_first_step(graph),
-            GraphTraversers::Dijkstras => self.dijkstras_step(graph),
-            GraphTraversers::AStar => self.astar_step(graph),
-            GraphTraversers::SimpleBreadth => self.simple_breadth(graph),
-        }
-    }
-
     pub fn breadth_first_step(&mut self, graph: &mut Graph) -> bool {
         let (_curr_length, idx) = self.to_traverse.remove(0);
         let node = graph.get_node_mut(idx);
@@ -249,9 +311,8 @@ impl TraversalData {
         self.to_traverse.is_empty()
     }
 
-    pub fn new(start_node: NodeIndex, end_node: NodeIndex, alg: GraphTraversers) -> TraversalData {
+    pub fn new(start_node: NodeIndex, end_node: NodeIndex) -> TraversalData {
         TraversalData {
-            alg,
             start_node,
             end_node,
             to_traverse: vec![(0.0, start_node)],

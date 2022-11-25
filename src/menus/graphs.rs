@@ -5,7 +5,7 @@ use crate::{
     app::GraphApp,
     graph::{Graph, NodeIndex},
     menus::Menu,
-    traversers::{GraphTraversers, TraversalData},
+    traversers::{GraphTraversers, TraversalManager},
 };
 
 #[derive(Default)]
@@ -80,8 +80,6 @@ impl Menu for GraphMenu {
     fn name(&self) -> &'static str {
         "Graphs"
     }
-
-    fn graph_updated(&mut self, _graph_index: &Graph) {}
 }
 
 struct RandomGraphMenu {
@@ -195,75 +193,79 @@ impl RandomGraphMenu {
 
         if self.connected {
             'connection_test: loop {
-                let mut traversal = TraversalData::new(
-                    NodeIndex(0),
-                    NodeIndex(self.node_count as usize - 1),
-                    GraphTraversers::SimpleBreadth,
-                );
+                let mut manager = TraversalManager::new(GraphTraversers::SimpleBreadth);
 
-                while !traversal.step(&mut graph) {}
+                manager.new_traversal(NodeIndex(0), NodeIndex(self.node_count as usize - 1));
+
+                while manager.currently_traversing {
+                    manager.update(&mut graph)
+                }
 
                 let mut edges_to_add = Vec::new();
 
-                if traversal.visited.len() != self.node_count as usize {
-                    for node in graph.get_nodes_mut() {
-                        if !traversal.visited.contains(&node.get_id()) {
-                            let id = node.get_id();
+                if let Some(traversal) = manager.traversal {
+                    if traversal.visited.len() != self.node_count as usize {
+                        for node in graph.get_nodes_mut() {
+                            if !traversal.visited.contains(&node.get_id()) {
+                                let id = node.get_id();
 
-                            let mut b = rng.gen_range(0..node_count) as usize;
+                                let mut b = rng.gen_range(0..node_count) as usize;
 
-                            while id.0 == b && node_count > 1 {
-                                b = rng.gen_range(0..node_count) as usize;
-                            }
-
-                            let mut b = NodeIndex(b);
-
-                            while node.get_edges().iter().any(|e| {
-                                let (c, d) = e.get_nodes();
-                                if c == id {
-                                    d == b
-                                } else if !self.directed {
-                                    c == b
-                                } else {
-                                    false
+                                while id.0 == b && node_count > 1 {
+                                    b = rng.gen_range(0..node_count) as usize;
                                 }
-                            }) {
-                                b = NodeIndex(rng.gen_range(0..node_count) as usize);
+
+                                let mut b = NodeIndex(b);
+
+                                while node.get_edges().iter().any(|e| {
+                                    let (c, d) = e.get_nodes();
+                                    if c == id {
+                                        d == b
+                                    } else if !self.directed {
+                                        c == b
+                                    } else {
+                                        false
+                                    }
+                                }) {
+                                    b = NodeIndex(rng.gen_range(0..node_count) as usize);
+                                }
+
+                                let weight = if self.weights {
+                                    Some(rng.gen_range(
+                                        self.weight_lower_bound..self.weight_upper_bound,
+                                    ))
+                                } else {
+                                    None
+                                };
+
+                                edges_to_add.push((id, b, weight));
                             }
-
-                            let weight = if self.weights {
-                                Some(
-                                    rng.gen_range(self.weight_lower_bound..self.weight_upper_bound),
-                                )
-                            } else {
-                                None
-                            };
-
-                            edges_to_add.push((id, b, weight));
-                        }
-                    }
-
-                    graph.reset();
-
-                    for (a, b, weight) in edges_to_add.into_iter() {
-                        graph.add_edge(a, b, weight);
-
-                        let mut traversal = TraversalData::new(
-                            NodeIndex(0),
-                            NodeIndex(self.node_count as usize - 1),
-                            GraphTraversers::SimpleBreadth,
-                        );
-
-                        while !traversal.step(&mut graph) {}
-
-                        if traversal.visited.len() == self.node_count as usize {
-                            break 'connection_test;
                         }
 
                         graph.reset();
+
+                        for (a, b, weight) in edges_to_add.into_iter() {
+                            graph.add_edge(a, b, weight);
+
+                            let mut manager = TraversalManager::new(GraphTraversers::SimpleBreadth);
+                            manager.new_traversal(
+                                NodeIndex(0),
+                                NodeIndex(self.node_count as usize - 1),
+                            );
+
+                            while manager.currently_traversing {
+                                manager.update(&mut graph)
+                            }
+
+                            if traversal.visited.len() == self.node_count as usize {
+                                break 'connection_test;
+                            }
+
+                            graph.reset();
+                        }
+                    } else {
+                        break;
                     }
-                } else {
-                    break;
                 }
             }
         }

@@ -1,32 +1,22 @@
 use std::collections::HashMap;
 
-use instant::Instant;
-
 use egui::{ComboBox, DragValue, Ui, Widget};
 
-use crate::{
-    app::GraphApp,
-    menus::Menu,
-    traversers::{GraphTraversers, TraversalData},
-};
+use crate::{app::GraphApp, menus::Menu, traversers::GraphTraversers};
 
+#[derive(Default)]
 pub struct TraversalMenu {
-    pub alg: GraphTraversers,
-    pub traversal: Option<TraversalData>,
     pub start_node: usize,
     pub end_node: usize,
-    pub last_traversal: Instant,
-    pub speed: u32,
-    pub auto: bool,
     pub debug_view: bool,
-    pub currently_traversing: bool,
 }
 
 impl Menu for TraversalMenu {
     fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui) {
-        if let Some(graph) = app.get_curr_graph() {
+        let (graph, manager) = app.get_traversal_menu_data();
+        if let Some(graph) = graph {
             let algs = GraphTraversers::values();
-            let mut curr_alg = algs.iter().position(|a| *a == self.alg).unwrap();
+            let mut curr_alg = algs.iter().position(|a| *a == manager.alg).unwrap();
 
             ComboBox::from_label("Traversal Algorithm").show_index(
                 ui,
@@ -35,7 +25,7 @@ impl Menu for TraversalMenu {
                 |i| algs[i].name().to_owned(),
             );
 
-            self.alg = algs[curr_alg];
+            manager.alg = algs[curr_alg];
 
             let nodes = graph.get_nodes();
 
@@ -71,24 +61,22 @@ impl Menu for TraversalMenu {
                 },
             );
 
-            ui.checkbox(&mut self.auto, "Automatically Traverse");
+            ui.checkbox(&mut manager.auto, "Automatically Traverse");
 
-            if self.auto {
+            if manager.auto {
                 ui.horizontal(|ui| {
                     ui.label("Milliseconds between steps");
-                    DragValue::new(&mut self.speed).clamp_range(0..=20).ui(ui);
+                    DragValue::new(&mut manager.speed)
+                        .clamp_range(0..=20)
+                        .ui(ui);
                 });
-            } else if self.currently_traversing && ui.button("Step Traversal").clicked() {
-                if let Some(data) = &mut self.traversal {
-                    if data.step(graph) {
-                        self.currently_traversing = false;
-                    }
-                }
+            } else if manager.currently_traversing && ui.button("Step Traversal").clicked() {
+                manager.update(graph);
             }
 
-            if self.traversal.is_some() {
+            if manager.traversal.is_some() {
                 if ui.button("Stop Traversal").clicked() {
-                    self.traversal = None;
+                    manager.traversal = None;
                     graph.reset();
                 }
             } else {
@@ -99,19 +87,17 @@ impl Menu for TraversalMenu {
                     && self.start_node > 0
                     && self.end_node > 0
                 {
-                    self.traversal = Some(TraversalData::new(
+                    manager.new_traversal(
                         usize_to_idx[self.start_node - 1],
                         usize_to_idx[self.end_node - 1],
-                        self.alg,
-                    ));
-                    self.currently_traversing = true;
+                    );
                 }
             }
 
             ui.checkbox(&mut self.debug_view, "Debug View");
 
             if self.debug_view {
-                if let Some(traversal) = &self.traversal {
+                if let Some(traversal) = &manager.traversal {
                     ui.horizontal(|ui| {
                         ui.label("To Traverse: ");
                         ui.monospace(format!(
@@ -147,21 +133,5 @@ impl Menu for TraversalMenu {
     fn graph_updated(&mut self, _graph: &crate::graph::Graph) {
         self.start_node = 0;
         self.end_node = 0;
-    }
-}
-
-impl Default for TraversalMenu {
-    fn default() -> Self {
-        TraversalMenu {
-            alg: GraphTraversers::DepthFirst,
-            traversal: None,
-            start_node: 0,
-            end_node: 0,
-            last_traversal: Instant::now(),
-            speed: 10,
-            auto: true,
-            debug_view: false,
-            currently_traversing: false,
-        }
     }
 }

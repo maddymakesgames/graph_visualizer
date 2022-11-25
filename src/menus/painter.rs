@@ -1,6 +1,6 @@
 use egui::{DragValue, Grid, Widget};
 
-use crate::{app::GraphApp, graph::Graph, menus::Menu};
+use crate::{app::GraphApp, menus::Menu};
 
 #[derive(Default)]
 pub struct GraphPainterMenu;
@@ -112,6 +112,4 @@ impl Menu for GraphPainterMenu {
     fn name(&self) -> &'static str {
         "Painter Settings"
     }
-
-    fn graph_updated(&mut self, _graph_index: &Graph) {}
 }

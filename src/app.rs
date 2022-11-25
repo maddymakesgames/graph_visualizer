@@ -1,15 +1,11 @@
-use instant::Instant;
-
 use eframe::CreationContext;
-use egui::{Context, DragValue, LayerId, Ui, Visuals, WidgetText, Window};
+use egui::{Context, LayerId, SelectableLabel, Ui, Visuals, Window};
 
 use crate::{
     graph::{Graph, NodeIndex},
-    menus::{
-        graphs::GraphMenu, nodes::NodesMenu, painter::GraphPainterMenu, traversals::TraversalMenu,
-        Menu,
-    },
+    menus::{menus, Menu, MENU_COUNT},
     painter::GraphPainter,
+    traversers::TraversalManager,
 };
 
 pub const INTERNAL_WIDTH: f32 = 1000.0;
@@ -40,6 +36,7 @@ pub struct GraphApp {
     graphs: Vec<Graph>,
     curr_graph: usize,
     curr_drag: Option<NodeIndex>,
+    traversal_manager: TraversalManager,
 }
 
 impl GraphApp {
@@ -54,8 +51,8 @@ impl GraphApp {
         if let Some(graph) = self.graphs.get(self.curr_graph) {
             self.painter.paint_graph(graph, &painter);
 
-            if !menus.traversal_data.currently_traversing {
-                if let Some(traversal) = &menus.traversal_data.traversal {
+            if !self.traversal_manager.currently_traversing {
+                if let Some(traversal) = &self.traversal_manager.traversal {
                     self.painter.paint_path(traversal.end_node, graph, &painter);
                 }
             } else {
@@ -65,7 +62,11 @@ impl GraphApp {
 
         self.handle_drag(ctx);
 
-        self.update_traversal(menus);
+        if let Some(graph) = self.graphs.get_mut(self.curr_graph) {
+            if self.traversal_manager.auto {
+                self.traversal_manager.update(graph);
+            }
+        }
 
         if self.curr_graph != curr_graph || (self.curr_graph == 0 && len != self.graphs.len()) {
             menus.graph_updated(self);
@@ -125,25 +126,6 @@ impl GraphApp {
         }
     }
 
-    fn update_traversal(&mut self, menus: &mut MenuData) {
-        if let Some(traverser) = &mut menus.traversal_data.traversal {
-            if menus.traversal_data.auto && menus.traversal_data.currently_traversing {
-                let now = Instant::now();
-                if let Some(dur) = now.checked_duration_since(menus.traversal_data.last_traversal) {
-                    if dur.as_millis() as u32 >= menus.traversal_data.speed {
-                        if match self.graphs.get_mut(self.curr_graph) {
-                            Some(g) => traverser.step(g),
-                            None => false,
-                        } {
-                            menus.traversal_data.currently_traversing = false;
-                        }
-                        menus.traversal_data.last_traversal = now;
-                    }
-                }
-            }
-        }
-    }
-
     pub fn get_curr_graph(&mut self) -> Option<&mut Graph> {
         self.graphs.get_mut(self.curr_graph)
     }
@@ -163,89 +145,54 @@ impl GraphApp {
     pub fn get_graph_painter(&mut self) -> &mut GraphPainter {
         &mut self.painter
     }
+
+    pub fn get_traversal_menu_data(&mut self) -> (Option<&mut Graph>, &mut TraversalManager) {
+        (
+            self.graphs.get_mut(self.curr_graph),
+            &mut self.traversal_manager,
+        )
+    }
 }
 
-#[derive(Default)]
 struct MenuData {
-    curr_menu: Menus,
-    node_menu: NodesMenu,
-    traversal_data: TraversalMenu,
-    graph_data: GraphMenu,
-    painter_menu: GraphPainterMenu,
+    curr_menu: usize,
+    menus: [Box<dyn Menu>; MENU_COUNT],
 }
 
 impl MenuData {
     fn draw(&mut self, ui: &mut Ui, app: &mut GraphApp) {
-        self.curr_menu.selectable_ui(ui);
+        self.selectable_ui(ui);
 
-        match self.curr_menu {
-            Menus::Graphs => self.graph_data.ui(app, ui),
-            Menus::Nodes => {
-                self.node_menu.ui(app, ui);
-            }
-            Menus::PainterSettings => self.painter_menu.ui(app, ui),
-            Menus::Traversals => self.traversal_data.ui(app, ui),
-            Menus::UISettings => self.draw_ui_settings(ui),
-        }
-    }
-
-    fn draw_ui_settings(&self, ui: &mut Ui) {
-        let mut style = (*ui.ctx().style()).clone();
-        ui.heading("Font Sizes");
-        for (text_style, font_id) in style.text_styles.iter_mut() {
-            ui.horizontal(|ui| {
-                ui.label(WidgetText::from(text_style.to_string()).text_style(text_style.clone()));
-                ui.add(DragValue::new(&mut font_id.size).clamp_range(5.0..=50.0));
-            });
-        }
-        ui.ctx().set_style(style);
-    }
-
-    fn graph_updated(&mut self, arg: &mut GraphApp) {
-        if let Some(graph) = arg.get_curr_graph() {
-            self.graph_data.graph_updated(graph);
-            self.node_menu.graph_updated(graph);
-            self.traversal_data.graph_updated(graph);
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
-pub enum Menus {
-    UISettings,
-    PainterSettings,
-    Nodes,
-    #[default]
-    Graphs,
-    Traversals,
-}
-
-impl Menus {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Menus::Graphs => "Graphs",
-            Menus::UISettings => "UI Settings",
-            Menus::PainterSettings => "Painter Settings",
-            Menus::Traversals => "Traversal",
-            Menus::Nodes => "Nodes",
-        }
+        self.menus[self.curr_menu].ui(app, ui);
     }
 
     pub fn selectable_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            for menu in Self::values() {
-                ui.selectable_value(self, menu, menu.name());
+            for (i, menu) in self.menus.iter().enumerate() {
+                if ui
+                    .add(SelectableLabel::new(self.curr_menu == i, menu.name()))
+                    .clicked()
+                {
+                    self.curr_menu = i;
+                }
             }
         });
     }
 
-    const fn values() -> [Menus; 5] {
-        [
-            Menus::Graphs,
-            Menus::Nodes,
-            Menus::Traversals,
-            Menus::PainterSettings,
-            Menus::UISettings,
-        ]
+    fn graph_updated(&mut self, arg: &mut GraphApp) {
+        if let Some(graph) = arg.get_curr_graph() {
+            for menu in &mut self.menus {
+                menu.graph_updated(graph);
+            }
+        }
+    }
+}
+
+impl Default for MenuData {
+    fn default() -> Self {
+        MenuData {
+            curr_menu: 0,
+            menus: menus(),
+        }
     }
 }
