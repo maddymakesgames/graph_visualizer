@@ -135,7 +135,7 @@ struct MenuData {
 impl MenuData {
     fn draw(&mut self, ui: &mut Ui, app: &mut GraphApp) {
         self.selectable_ui(ui);
-
+        ui.separator();
         self.menus[self.curr_menu].ui(app, ui);
     }
 
