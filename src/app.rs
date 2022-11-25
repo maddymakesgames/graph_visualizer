@@ -32,11 +32,11 @@ impl AppManager {
 
 #[derive(Default)]
 pub struct GraphApp {
-    painter: GraphPainter,
-    graphs: Vec<Graph>,
-    curr_graph: usize,
-    curr_drag: Option<NodeIndex>,
-    traversal_manager: TraversalManager,
+    pub painter: GraphPainter,
+    pub graphs: Vec<Graph>,
+    pub curr_graph: usize,
+    pub curr_drag: Option<NodeIndex>,
+    pub traversal_manager: TraversalManager,
 }
 
 impl GraphApp {
@@ -125,33 +125,6 @@ impl GraphApp {
             }
         }
     }
-
-    pub fn get_curr_graph(&mut self) -> Option<&mut Graph> {
-        self.graphs.get_mut(self.curr_graph)
-    }
-
-    pub fn get_graphs(&mut self) -> &mut Vec<Graph> {
-        &mut self.graphs
-    }
-
-    pub fn get_curr_graph_index(&self) -> usize {
-        self.curr_graph
-    }
-
-    pub fn set_curr_graph_index(&mut self, index: usize) {
-        self.curr_graph = index;
-    }
-
-    pub fn get_graph_painter(&mut self) -> &mut GraphPainter {
-        &mut self.painter
-    }
-
-    pub fn get_traversal_menu_data(&mut self) -> (Option<&mut Graph>, &mut TraversalManager) {
-        (
-            self.graphs.get_mut(self.curr_graph),
-            &mut self.traversal_manager,
-        )
-    }
 }
 
 struct MenuData {
@@ -179,8 +152,8 @@ impl MenuData {
         });
     }
 
-    fn graph_updated(&mut self, arg: &mut GraphApp) {
-        if let Some(graph) = arg.get_curr_graph() {
+    fn graph_updated(&mut self, app: &mut GraphApp) {
+        if let Some(graph) = app.graphs.get_mut(app.curr_graph) {
             for menu in &mut self.menus {
                 menu.graph_updated(graph);
             }

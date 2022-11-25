@@ -7,7 +7,7 @@ pub struct GraphPainterMenu;
 
 impl Menu for GraphPainterMenu {
     fn ui(&mut self, app: &mut GraphApp, ui: &mut egui::Ui) {
-        let painter = app.get_graph_painter();
+        let painter = &mut app.painter;
         ui.heading("Node Settings");
         ui.separator();
         Grid::new("node settings").show(ui, |ui| {

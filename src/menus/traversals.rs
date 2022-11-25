@@ -13,8 +13,8 @@ pub struct TraversalMenu {
 
 impl Menu for TraversalMenu {
     fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui) {
-        let (graph, manager) = app.get_traversal_menu_data();
-        if let Some(graph) = graph {
+        if let Some(graph) = app.graphs.get_mut(app.curr_graph) {
+            let manager = &mut app.traversal_manager;
             let algs = GraphTraversers::values();
             let mut curr_alg = algs.iter().position(|a| *a == manager.alg).unwrap();
 

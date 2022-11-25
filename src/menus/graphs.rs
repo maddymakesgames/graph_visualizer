@@ -19,8 +19,8 @@ pub struct GraphMenu {
 
 impl Menu for GraphMenu {
     fn ui(&mut self, graph_app: &mut GraphApp, ui: &mut Ui) {
-        let curr_graph = graph_app.get_curr_graph_index();
-        let graphs = graph_app.get_graphs();
+        let curr_graph = graph_app.curr_graph;
+        let graphs = &mut graph_app.graphs;
 
         let mut graph_selection = if graphs.is_empty() { 0 } else { curr_graph + 1 };
         ComboBox::from_label("Select Graph").show_index(
@@ -37,10 +37,8 @@ impl Menu for GraphMenu {
         );
 
         if graph_selection > 0 {
-            graph_app.set_curr_graph_index(graph_selection - 1);
+            graph_app.curr_graph = graph_selection - 1;
         }
-
-        let graphs = graph_app.get_graphs();
 
         ui.horizontal(|ui| {
             ui.label("Graph Name");

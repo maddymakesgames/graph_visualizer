@@ -17,7 +17,7 @@ pub struct NodesMenu {
 
 impl Menu for NodesMenu {
     fn ui(&mut self, app: &mut GraphApp, ui: &mut Ui) {
-        if let Some(graph) = app.get_curr_graph() {
+        if let Some(graph) = app.graphs.get_mut(app.curr_graph) {
             ui.horizontal(|ui| {
                 ui.label("Add Node");
 
