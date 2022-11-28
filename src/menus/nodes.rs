@@ -167,7 +167,13 @@ impl Menu for NodesMenu {
 
     fn graph_updated(&mut self, graph: &Graph) {
         self.curr_editing_node = 0;
-        self.node_data = vec![NodeMenuData::default(); graph.get_nodes().len()];
+        let mut node_data = NodeMenuData::default();
+        
+        if graph.is_directed() {
+            node_data.weight = Some(1.0);
+        }
+        
+        self.node_data = vec![node_data; graph.get_nodes().len()];
     }
 }
 
